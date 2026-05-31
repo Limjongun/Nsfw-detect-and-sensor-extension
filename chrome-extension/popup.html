@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NSFW Shield</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --surface2: #1e2230;
+      --border: #2a2f45;
+      --accent: #7c6af7;
+      --accent2: #5c56d4;
+      --safe: #22d3a5;
+      --nsfw: #f43f5e;
+      --warn: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 12px;
+    }
+
+    body {
+      width: 380px;
+      min-height: 500px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg, #1a1540 0%, #0d0f14 100%);
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -30px;
+      width: 130px; height: 130px;
+      background: radial-gradient(circle, rgba(124,106,247,.25) 0%, transparent 70%);
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(124,106,247,.4);
+    }
+    .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-sub  { font-size: 11px; color: var(--muted); }
+
+    /* ─── Status pill ─── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background .3s;
+      flex-shrink: 0;
+    }
+    .dot.active { background: var(--safe); box-shadow: 0 0 6px var(--safe); }
+    .dot.scanning { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 1s infinite; }
+    .dot.blocked  { background: var(--nsfw);  box-shadow: 0 0 6px var(--nsfw);  }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #statusText { font-size: 12px; color: var(--muted); flex: 1; }
+
+    /* ─── Toggle switch ─── */
+    .toggle-wrap { display: flex; align-items: center; gap: 6px; }
+    .toggle { position: relative; width: 38px; height: 21px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 21px;
+      cursor: pointer;
+      transition: background .3s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 15px; height: 15px;
+      left: 3px; bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .3s;
+    }
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(17px); }
+
+    /* ─── Body ─── */
+    .body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ─── Scan button ─── */
+    #scanBtn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(124,106,247,.35);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #scanBtn:hover  { opacity: .9; box-shadow: 0 6px 20px rgba(124,106,247,.5); }
+    #scanBtn:active { transform: scale(.98); }
+    #scanBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ─── Stats grid ─── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 10px;
+      text-align: center;
+      transition: border-color .2s;
+    }
+    .stat-card.highlighted { border-color: var(--nsfw); }
+    .stat-num {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-num.safe  { color: var(--safe);  }
+    .stat-num.nsfw  { color: var(--nsfw);  }
+    .stat-num.total { color: var(--accent); }
+    .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+
+    /* ─── Progress bar ─── */
+    .progress-wrap { display: none; flex-direction: column; gap: 6px; }
+    .progress-wrap.visible { display: flex; }
+    .progress-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    .progress-track {
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 99px;
+      width: 0%;
+      transition: width .3s ease;
+    }
+
+    /* ─── Results list ─── */
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .results-clear {
+      background: none; border: none;
+      color: var(--muted);
+      font-size: 11px; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color .2s, background .2s;
+    }
+    .results-clear:hover { color: var(--text); background: var(--surface2); }
+
+    #resultsList {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    #resultsList::-webkit-scrollbar { width: 4px; }
+    #resultsList::-webkit-scrollbar-track { background: transparent; }
+    #resultsList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    .result-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: border-color .2s;
+      animation: slideIn .25s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-item.nsfw-item { border-color: rgba(244,63,94,.4); background: rgba(244,63,94,.06); }
+    .result-item.safe-item { border-color: rgba(34,211,165,.15); }
+
+    .result-thumb {
+      width: 42px; height: 42px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+    .result-info { flex: 1; min-width: 0; }
+    .result-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      letter-spacing: .5px;
+    }
+    .badge-nsfw { background: rgba(244,63,94,.2); color: var(--nsfw); border: 1px solid rgba(244,63,94,.4); }
+    .badge-safe { background: rgba(34,211,165,.15); color: var(--safe); border: 1px solid rgba(34,211,165,.3); }
+
+    .result-scores {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 5px;
+    }
+    .score-chip {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .score-chip.danger { background: rgba(244,63,94,.1); color: #f87171; border-color: rgba(244,63,94,.3); }
+
+    /* ─── Empty state ─── */
+    .empty-state {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .empty-icon { font-size: 36px; opacity: .5; }
+    .empty-text { font-size: 12px; line-height: 1.5; }
+
+    /* ─── Threshold slider ─── */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .setting-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    #thresholdSlider {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    #thresholdVal {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+    .footer-note { font-size: 10px; color: var(--muted); }
+    .model-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(124,106,247,.15);
+      color: var(--accent);
+      border: 1px solid rgba(124,106,247,.3);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">🛡️</div>
+    <div>
+      <div class="header-title">NSFW Shield</div>
+      <div class="header-sub">AI-powered image safety detector</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Status bar ─── -->
+<div class="status-bar">
+  <div class="dot active" id="dot"></div>
+  <span id="statusText">Siap memindai halaman</span>
+  <div class="toggle-wrap">
+    <label class="toggle" title="Aktifkan auto-scan">
+      <input type="checkbox" id="autoToggle" />
+      <span class="slider"></span>
+    </label>
+    <span style="font-size:11px;color:var(--muted)">Auto</span>
+  </div>
+</div>
+
+<!-- ─── Body ─── -->
+<div class="body">
+
+  <!-- Scan button -->
+  <button id="scanBtn">
+    <span id="scanIcon">🔍</span>
+    <span id="scanLabel">Scan Halaman Ini</span>
+  </button>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-num total" id="totalNum">0</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num safe" id="safeNum">0</div>
+      <div class="stat-label">Aman</div>
+    </div>
+    <div class="stat-card" id="nsfwCard">
+      <div class="stat-num nsfw" id="nsfwNum">0</div>
+      <div class="stat-label">NSFW</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-info">
+      <span id="progressLabel">Memproses...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- Threshold -->
+  <div class="setting-row">
+    <span class="setting-label">🎚️ Threshold NSFW</span>
+    <input type="range" id="thresholdSlider" min="10" max="90" value="50" step="5" />
+    <span id="thresholdVal">50%</span>
+  </div>
+
+  <!-- Results -->
+  <div class="results-header">
+    <span>Hasil Deteksi</span>
+    <button class="results-clear" id="clearBtn">Bersihkan</button>
+  </div>
+
+  <div id="resultsList">
+    <div class="empty-state">
+      <div class="empty-icon">🔎</div>
+      <div class="empty-text">Klik "Scan Halaman Ini"<br>untuk mulai mendeteksi gambar.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Footer ─── -->
+<div class="footer">
+  <span class="footer-note">Powered by TensorFlow.js</span>
+  <span class="model-badge">MobileNetV2</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

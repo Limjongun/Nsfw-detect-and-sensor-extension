@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>NSFW Shield – Offscreen</title>
+</head>
+<body>
+  <!--
+    Dokumen ini berjalan di background (tersembunyi dari user).
+    Muat TF.js dan nsfwjs-bundle (model weights embedded) sebagai script biasa.
+    Service Worker TIDAK bisa menjalankan ini - hanya Offscreen Document yang bisa.
+  -->
+  <script src="lib/tf.min.js"></script>
+  <script src="lib/nsfwjs-bundle.js"></script>
+  <script src="offscreen.js"></script>
+</body>
+</html>
